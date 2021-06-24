@@ -25,10 +25,13 @@ import (
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
@@ -72,6 +75,15 @@ func main() {
 			"the manager will watch and manage resources in all namespaces")
 	}
 
+	// Filter the cache to only watch/list ConfigMaps for the providers
+	cacheOptions := cache.Options{
+		SelectorsByObject: cache.SelectorsByObject{
+			&v1.ConfigMap{}: {
+				Label: labels.Set(controllers.ConfigMapSelector).AsSelector(),
+			},
+		},
+	}
+
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
 		MetricsBindAddress:     metricsAddr,
@@ -80,6 +92,7 @@ func main() {
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "e4addb06.redhat.com",
 		Namespace:              watchNamespace, // namespaced-scope when the value is not an empty string
+		NewCache:               cache.BuilderWithOptions(cacheOptions),
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
@@ -91,16 +104,35 @@ func main() {
 		Scheme: mgr.GetScheme(),
 	}
 
+	setupLog.Info("Read configured DBaaS Providers from ConfigMaps")
+	cmList, err := DBaaSReconciler.PreStartGetProviderCMList(watchNamespace)
+	if err != nil {
+		setupLog.Error(err, "unable to fetch DBaaS Providers")
+		os.Exit(1)
+	}
+	providerList, err := DBaaSReconciler.ParseDBaaSProviderList(cmList)
+	if err != nil {
+		setupLog.Error(err, "unable to parse DBaaS Providers")
+		os.Exit(1)
+	}
+
 	if err = (&controllers.DBaaSConnectionReconciler{
 		DBaaSReconciler: DBaaSReconciler,
-	}).SetupWithManager(mgr, watchNamespace); err != nil {
+	}).SetupWithManager(mgr, providerList); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "DBaaSConnection")
 		os.Exit(1)
 	}
 	if err = (&controllers.DBaaSInventoryReconciler{
 		DBaaSReconciler: DBaaSReconciler,
-	}).SetupWithManager(mgr, watchNamespace); err != nil {
+	}).SetupWithManager(mgr, providerList); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "DBaaSInventory")
+		os.Exit(1)
+	}
+	if err = (&controllers.ProviderConfigMapReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr, cmList); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "ProviderConfigMap")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder
