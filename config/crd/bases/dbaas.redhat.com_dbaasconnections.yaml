@@ -14,7 +14,7 @@ spec:
     listKind: DBaaSConnectionList
     plural: dbaasconnections
     singular: dbaasconnection
-  scope: Namespaced
+  scope: Cluster
   versions:
   - name: v1alpha1
     schema:

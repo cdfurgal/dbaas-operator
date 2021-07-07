@@ -30,6 +30,7 @@ type DBaaSOperatorInventorySpec struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:resource:scope=Cluster
 
 // DBaaSInventory is the Schema for the dbaasinventory API
 type DBaaSInventory struct {

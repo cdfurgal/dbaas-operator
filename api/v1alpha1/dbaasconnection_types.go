@@ -25,6 +25,7 @@ import (
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:resource:scope=Cluster
 
 // DBaaSConnection is the Schema for the dbaasconnections API
 type DBaaSConnection struct {

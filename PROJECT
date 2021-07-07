@@ -9,7 +9,7 @@ repo: github.com/RHEcosystemAppEng/dbaas-operator
 resources:
 - api:
     crdVersion: v1
-    namespaced: true
+    namespaced: false
   controller: true
   domain: redhat.com
   group: dbaas
@@ -18,7 +18,7 @@ resources:
   version: v1alpha1
 - api:
     crdVersion: v1
-    namespaced: true
+    namespaced: false
   controller: true
   domain: redhat.com
   group: dbaas
