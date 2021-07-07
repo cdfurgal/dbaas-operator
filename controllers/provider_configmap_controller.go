@@ -57,7 +57,6 @@ func (r *ProviderConfigMapReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 	var deploymentList appsv1.DeploymentList
 	opts := []client.ListOption{
-		client.InNamespace(req.Namespace),
 		client.MatchingLabels{
 			deploymentLabelKey: deploymentLabelValue,
 		},

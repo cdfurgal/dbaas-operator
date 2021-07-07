@@ -56,7 +56,7 @@ func (r *DBaaSInventoryReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, err
 	}
 
-	provider, err := r.getDBaaSProvider(inventory.Spec.Provider, req.Namespace, ctx)
+	provider, err := r.getDBaaSProvider(inventory.Spec.Provider, ctx)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			logger.Error(err, "Requested DBaaS Provider is not configured in this environment", "DBaaS Provider", provider.Provider)

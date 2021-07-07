@@ -43,8 +43,8 @@ type DBaaSReconciler struct {
 	*runtime.Scheme
 }
 
-func (p *DBaaSReconciler) getDBaaSProvider(requestedProvider v1alpha1.DatabaseProvider, namespace string, ctx context.Context) (v1alpha1.DBaaSProvider, error) {
-	cmList, err := p.getProviderCMList(namespace, ctx)
+func (p *DBaaSReconciler) getDBaaSProvider(requestedProvider v1alpha1.DatabaseProvider, ctx context.Context) (v1alpha1.DBaaSProvider, error) {
+	cmList, err := p.getProviderCMList(ctx)
 	if err != nil {
 		return v1alpha1.DBaaSProvider{}, err
 	}
@@ -118,10 +118,9 @@ func (p *DBaaSReconciler) parseDBaaSProviderConnections(providerList v1alpha1.DB
 	return objects
 }
 
-func (p *DBaaSReconciler) getProviderCMList(namespace string, ctx context.Context) (v1.ConfigMapList, error) {
+func (p *DBaaSReconciler) getProviderCMList(ctx context.Context) (v1.ConfigMapList, error) {
 	var cmList v1.ConfigMapList
 	opts := []client.ListOption{
-		client.InNamespace(namespace),
 		client.MatchingLabels(ConfigMapSelector),
 	}
 
@@ -131,7 +130,7 @@ func (p *DBaaSReconciler) getProviderCMList(namespace string, ctx context.Contex
 	return cmList, nil
 }
 
-func (p *DBaaSReconciler) PreStartGetProviderCMList(namespace string) (v1.ConfigMapList, error) {
+func (p *DBaaSReconciler) PreStartGetProviderCMList() (v1.ConfigMapList, error) {
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		return v1.ConfigMapList{}, err
@@ -144,7 +143,7 @@ func (p *DBaaSReconciler) PreStartGetProviderCMList(namespace string) (v1.Config
 		LabelSelector: labels.SelectorFromSet(ConfigMapSelector).String(),
 	}
 
-	if cmList, err := clientset.CoreV1().ConfigMaps(namespace).List(context.TODO(), options); err != nil {
+	if cmList, err := clientset.CoreV1().ConfigMaps("").List(context.TODO(), options); err != nil {
 		return v1.ConfigMapList{}, err
 	} else {
 		return *cmList, nil
